@@ -2,6 +2,8 @@
 title: "CC1"
 output: github_document
 ---
+#Installation du package
+
 ```{r}
 library(dada2)
 ```
