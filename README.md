@@ -55,33 +55,66 @@ La fonction Sort permet un tri par ordre alphabétique, puis path, pattern="_R1_
 Récupération des fichiers Forward(R1) et Reverse(R2), puis extraction des noms des échantillons.
 
 ## Visualisation de qualité des lectures
+### Forward
 ```{r}
 plotQualityProfile(fnFs[1:2])
 ```
 ![](unnamed-chunk-4-1.png)<!-- -->
+Ceci est un graphique permettant de constater la qualité des nucléotides à travers les lectures.
 
+Le dégradé de noir représente la fréquence de score pour les différentes positions de lecture
+
+La ligne verte es la moyenne du score de qualité pour chacune des positions.
+
+La ligne orange (du haut) correspond au quartiles.
+
+La ligne rouge représente la proportion de lecture qui atteignent bel et bien les différenets positions. 
+
+La lecture est ici de bonne qualité jusqu'à environs 240 paire de bases.
+
+### Reverse
 ```{r}
-# Forward and reverse fastq filenames have format: SAMPLENAME_R1_001.fastq and SAMPLENAME_R2_001.fastq
-fnFs <- sort(list.files(path, pattern="_R1_001.fastq", full.names = TRUE))
-fnRs <- sort(list.files(path, pattern="_R2_001.fastq", full.names = TRUE))
-# Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq
-sample.names <- sapply(strsplit(basename(fnFs), "_"), `[`, 1)
+plotQualityProfile(fnRs[1:2])
 ```
+![](unnamed-chunk-6-1.png)<!-- -->
 
+La qualité des lectures Reverse est bien plus basse que celle des lectures forward. En effet, une chute de cette qualité peut être observée à partir d'environ 155 paire de bases. Cela n'est pas étonnant pour des données Illumina, mais dada2 présente un avantage vis à vis de cela en intégrant des informations de bonne qualité dans son modèle d'erreur, compensant donc ces séquences de "mauvaise" qualité. 
+
+## Nommer fichiers filtrés 
 ```{r}
-# Place filtered files in filtered/ subdirectory
-filtFs <- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
+filtFs <- file.path(path, "filtered", # Crée un chemin vers un sous-dosier "filtered" à l'intérieur du dossier 'path"
+                    paste0(sample.names, "_F_filt.fastq.gz")) # Crée le nom du fichier filtré pour chaque échantillon
+
 filtRs <- file.path(path, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
 names(filtFs) <- sample.names
-names(filtRs) <- sample.names
+names(filtRs) <- sample.names # Attribution de ces noms aux fichiers
 ```
 
+Cette étape permet en premier lieu de créer un nouveau dossier "filtered" et de créer des noms à ces fichiers filtrés ; avant de leur attribuer. 
+
+Nos fichiers sont donc maintenant reconnaissables et leur nom est lié avec celui de leur échantillon.
+
+## Filtrage des séquences
 ```{r}
-out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(240,160),
-              maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
-              compress=TRUE, multithread=FALSE) # On Windows set multithread=FALSE
+out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(240,160), # Tronque les lectures Forward à 240 bases et Reverse à 160 bases
+              maxN=0, # Elimine toutes lecture contenant une base inconnue
+              maxEE=c(2,2), # Maximum d'erreurs par lecture
+              truncQ=2, # Tronque la lecture dès que son score de qualité est inférieur à 2
+              rm.phix=TRUE, # Supprime les lectures provenant du génome PhiX
+              compress=TRUE, multithread=FALSE) 
 head(out)
 ```
+##                               reads.in reads.out
+## F3D0_S188_L001_R1_001.fastq       7793      7113
+## F3D1_S189_L001_R1_001.fastq       5869      5299
+## F3D141_S207_L001_R1_001.fastq     5958      5463
+## F3D142_S208_L001_R1_001.fastq     3183      2914
+## F3D143_S209_L001_R1_001.fastq     3178      2941
+## F3D144_S210_L001_R1_001.fastq     4827      4312
+
+Cette ligne de code permet de nous montrer les lectures avant (reads.in) et après filtrage (reads.out). Cela nous permet de constater que la majorité des lectures ont été conservées malgrès le filtrage.
+
+## Modèle d'erreur 
 ```{r}
 errF <- learnErrors(filtFs, multithread=FALSE)
 ```
