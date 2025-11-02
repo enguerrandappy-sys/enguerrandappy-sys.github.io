@@ -58,7 +58,7 @@ Récupération des fichiers Forward(R1) et Reverse(R2), puis extraction des noms
 ```{r}
 plotQualityProfile(fnFs[1:2])
 ```
-
+![](unnamed-chunk-4-1.png)<!-- -->
 
 ```{r}
 # Forward and reverse fastq filenames have format: SAMPLENAME_R1_001.fastq and SAMPLENAME_R2_001.fastq
